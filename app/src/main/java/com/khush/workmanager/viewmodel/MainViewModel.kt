@@ -23,6 +23,7 @@ import com.khush.workmanager.util.Const.QUEUED
 import com.khush.workmanager.util.Const.RUNNING
 import com.khush.workmanager.util.Const.SUCCESS
 import com.khush.workmanager.util.Const.TAG_DOWNLOAD
+import com.khush.workmanager.util.Const.URL
 import com.khush.workmanager.worker.DownloadWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -54,12 +55,11 @@ class MainViewModel(private val application: Application): AndroidViewModel(appl
                         WorkInfo.State.CANCELLED -> CANCELLED
                         WorkInfo.State.BLOCKED -> BLOCKED
                     }
-                    workManager.pruneWork()
                     val fileName = workInfo.outputData.getString(FILENAME)
                         ?: ("Unknown_" + System.currentTimeMillis().toString())
                     if(status == SUCCESS) continue //downloaded file will be queued from file system
 
-                    downloadItems.add(DownloadItem(fileName, status, uuid = workInfo.id.toString()))
+                    downloadItems.add(DownloadItem(fileName, status, uuid = workInfo.id, url = workInfo.progress.getString(URL)))
                 }
                 downloadItems
             }
@@ -109,6 +109,12 @@ class MainViewModel(private val application: Application): AndroidViewModel(appl
             url, ExistingWorkPolicy.KEEP,
             downloadWorkRequest
         )
+    }
+
+    fun cancelStartWork(item: DownloadItem) {
+        if(item.status == CANCELLED) {
+            if(item.url != null) startDownloading(item.url)
+        } else item.uuid?.let { workManager.cancelWorkById(it) }
     }
 
 }

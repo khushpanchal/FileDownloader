@@ -23,8 +23,9 @@ class FilesAdapter(private val listener: FileClickListener): ListAdapter<Downloa
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.fileName?.text = getItem(position).fileName
         holder.fileStatus?.text = getItem(position).status
+        val item = getItem(position)
         holder.itemView.setOnClickListener {
-            listener.onFileClick(getItem(position).fileUri)
+            listener.onFileClick(item)
         }
     }
 
@@ -49,7 +50,7 @@ class FilesAdapter(private val listener: FileClickListener): ListAdapter<Downloa
     }
 
     interface FileClickListener {
-        fun onFileClick(uri: Uri?)
+        fun onFileClick(downloadItem: DownloadItem)
     }
 
 }

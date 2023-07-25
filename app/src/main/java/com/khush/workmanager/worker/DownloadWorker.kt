@@ -7,6 +7,7 @@ import androidx.work.workDataOf
 import com.khush.workmanager.util.Const.FILENAME
 import com.khush.workmanager.util.Const.KEY_URL
 import com.khush.workmanager.util.Const.REASON
+import com.khush.workmanager.util.Const.URL
 import com.khush.workmanager.util.DownloadInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,6 +26,7 @@ class DownloadWorker(private val context: Context, private val workerParameters:
     override suspend fun doWork(): Result {
 //        delay(5000)
         val url = inputData.getString(KEY_URL)
+        setProgressAsync(workDataOf(URL to url)) //unique workName, used when restart cancelled work
         if(url.isNullOrEmpty()) {
             return Result.failure(
                 workDataOf(

@@ -11,8 +11,10 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.khush.workmanager.bean.DownloadItem
 import com.khush.workmanager.viewmodel.MainViewModel
 import com.khush.workmanager.databinding.FragmentMainBinding
+import com.khush.workmanager.util.Const
 
 class MainFragment: Fragment() {
 
@@ -45,18 +47,22 @@ class MainFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         adapter = FilesAdapter(object : FilesAdapter.FileClickListener{
-            override fun onFileClick(uri: Uri?) {
-                if(uri != null) {
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, requireContext().contentResolver.getType(uri))
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                    try {
-                        startActivity(intent)
-                    } catch (e: Exception) {
+            override fun onFileClick(downloadItem: DownloadItem) {
+                if(downloadItem.status == Const.SUCCESS) {
+                    if(downloadItem.fileUri!= null) {
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(downloadItem.fileUri, requireContext().contentResolver.getType(downloadItem.fileUri))
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        try {
+                            startActivity(intent)
+                        } catch (e: Exception) {
+
+                        }
 
                     }
-
+                } else {
+                    viewModel.cancelStartWork(downloadItem)
                 }
             }
         })

@@ -5,6 +5,7 @@ object Const {
     const val TAG_DOWNLOAD = "download"
     const val REASON = "reason"
     const val FILENAME = "fileName"
+    const val URL = "url"
     const val QUEUED = "Queued"
     const val RUNNING = "Running"
     const val SUCCESS = "Success"
