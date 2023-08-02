@@ -1,15 +1,30 @@
 package com.khush.workmanager.worker
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.PendingIntent.getActivity
 import android.content.Context
+import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
+import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.khush.workmanager.MainActivity
+import com.khush.workmanager.R
 import com.khush.workmanager.util.Const.FILENAME
 import com.khush.workmanager.util.Const.KEY_URL
+import com.khush.workmanager.util.Const.NOTIFICATION_ID
 import com.khush.workmanager.util.Const.REASON
 import com.khush.workmanager.util.Const.URL
 import com.khush.workmanager.util.DownloadInterface
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
@@ -24,7 +39,10 @@ class DownloadWorker(private val context: Context, private val workerParameters:
     //https://fastly.picsum.photos/id/886/200/200.jpg?hmac=pfmGQi7EpajLoJI0tKTPTUwOPQtH9YwE-wNl_kr7ErI
 
     override suspend fun doWork(): Result {
-//        delay(5000)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            sendNotification()
+        }
+        delay(5000)
         val url = inputData.getString(KEY_URL)
         setProgressAsync(workDataOf(URL to url)) //unique workName, used when restart cancelled work
         if(url.isNullOrEmpty()) {
@@ -78,6 +96,30 @@ class DownloadWorker(private val context: Context, private val workerParameters:
             workDataOf(
                 REASON to "Unknown error",
                 FILENAME to "Unknown_"+System.currentTimeMillis().toString()
+            )
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun sendNotification() {
+        val channel = NotificationChannel("download_channel", "File Download", NotificationManager.IMPORTANCE_HIGH)
+        val notificationManager = context.getSystemService(NotificationManager::class.java)
+        notificationManager.createNotificationChannel(channel)
+
+        val intent = Intent(applicationContext, MainActivity::class.java)
+        intent.flags = FLAG_ACTIVITY_NEW_TASK or FLAG_ACTIVITY_CLEAR_TASK
+        intent.putExtra("notification_id", NOTIFICATION_ID)
+        val pendingIntent = getActivity(applicationContext, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
+        setForeground(
+            ForegroundInfo(
+                NOTIFICATION_ID,
+                NotificationCompat.Builder(context, "download_channel")
+                    .setSmallIcon(R.drawable.ic_launcher_background)
+                    .setContentText("Downloading...")
+                    .setContentTitle("Download in progress")
+                    .setContentIntent(pendingIntent)
+                    .build()
             )
         )
     }

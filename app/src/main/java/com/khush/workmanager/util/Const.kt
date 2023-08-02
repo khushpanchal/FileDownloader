@@ -13,4 +13,5 @@ object Const {
     const val CANCELLED = "Cancelled"
     const val BLOCKED = "Blocked"
 
+    const val NOTIFICATION_ID = 1
 }
