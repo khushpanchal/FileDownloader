@@ -42,7 +42,6 @@ class DownloadWorker(private val context: Context, private val workerParameters:
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             sendNotification()
         }
-        delay(5000)
         val url = inputData.getString(KEY_URL)
         setProgressAsync(workDataOf(URL to url)) //unique workName, used when restart cancelled work
         if(url.isNullOrEmpty()) {
