@@ -38,10 +38,8 @@ class DownloadWorker(private val context: Context, private val workerParameters:
     //https://fastly.picsum.photos/id/133/200/200.jpg?hmac=iMRNc08s10YIUOgb0oqyc8fDo7tiPCj86Au7eFqs6Js
     //https://fastly.picsum.photos/id/886/200/200.jpg?hmac=pfmGQi7EpajLoJI0tKTPTUwOPQtH9YwE-wNl_kr7ErI
 
+    @RequiresApi(Build.VERSION_CODES.M)
     override suspend fun doWork(): Result {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            sendNotification()
-        }
         val url = inputData.getString(KEY_URL)
         setProgressAsync(workDataOf(URL to url)) //unique workName, used when restart cancelled work
         if(url.isNullOrEmpty()) {
@@ -51,6 +49,9 @@ class DownloadWorker(private val context: Context, private val workerParameters:
                     FILENAME to "Unknown_"+System.currentTimeMillis().toString()
                 )
             )
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            sendNotification()
         }
 //        setProgress(workDataOf(FILENAME to "Unknown"))
         val response = DownloadInterface.instance.downloadFile(url)
@@ -64,6 +65,7 @@ class DownloadWorker(private val context: Context, private val workerParameters:
                     try {
                         stream.write(body.bytes())
                     } catch (e: IOException) {
+                        cancelNotification()
                         return@withContext Result.failure(
                             workDataOf(
                                 REASON to "Unknown",
@@ -71,6 +73,7 @@ class DownloadWorker(private val context: Context, private val workerParameters:
                             )
                         )
                     }
+                    cancelNotification()
                     Result.success(
                         workDataOf(
                             FILENAME to file.name,
@@ -80,6 +83,7 @@ class DownloadWorker(private val context: Context, private val workerParameters:
             }
         }
 
+        cancelNotification()
         if(!response.isSuccessful) {
             if(response.code().toString().startsWith("5")) {
                 return Result.retry()
@@ -121,5 +125,15 @@ class DownloadWorker(private val context: Context, private val workerParameters:
                     .build()
             )
         )
+    }
+
+    private suspend fun cancelNotification() {
+        val notificationManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            context.getSystemService(NotificationManager::class.java)
+        } else {
+            null
+        }
+        notificationManager?.cancel(NOTIFICATION_ID)
+
     }
 }

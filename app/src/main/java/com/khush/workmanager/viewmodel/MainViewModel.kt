@@ -6,6 +6,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import androidx.lifecycle.Transformations
 import androidx.lifecycle.viewModelScope
 import androidx.work.Data
@@ -35,6 +36,10 @@ class MainViewModel(private val application: Application): AndroidViewModel(appl
     fun getDownloadItemsLiveData(): LiveData<List<DownloadItem>> {
         return downloadItemsLiveData
     }
+    private lateinit var transformedLiveData: LiveData<List<DownloadItem>>
+    private val observer = Observer<List<DownloadItem>> {
+        downloadItemsLiveData.postValue(syncWithFileSys(it.toMutableList()))
+    }
 
     private val downloadItems = mutableListOf<DownloadItem>()
 
@@ -44,7 +49,7 @@ class MainViewModel(private val application: Application): AndroidViewModel(appl
         //exsisting work info query
         viewModelScope.launch(Dispatchers.IO) {
             val workInfosLiveData: LiveData<List<WorkInfo>> = workManager.getWorkInfosByTagLiveData(TAG_DOWNLOAD)
-            val transformedLiveData: LiveData<List<DownloadItem>> = Transformations.map(workInfosLiveData) { workInfos ->
+            transformedLiveData = Transformations.map(workInfosLiveData) { workInfos ->
                 downloadItems.clear()
                 for (workInfo in workInfos) {
                     val status = when (workInfo.state) {
@@ -64,9 +69,7 @@ class MainViewModel(private val application: Application): AndroidViewModel(appl
                 downloadItems
             }
             withContext(Dispatchers.Main) {
-                transformedLiveData.observeForever {
-                    downloadItemsLiveData.postValue(syncWithFileSys(it.toMutableList()))
-                }
+                transformedLiveData.observeForever(observer)
             }
         }
     }
@@ -115,6 +118,11 @@ class MainViewModel(private val application: Application): AndroidViewModel(appl
         if(item.status == CANCELLED) {
             if(item.url != null) startDownloading(item.url)
         } else item.uuid?.let { workManager.cancelWorkById(it) }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        transformedLiveData.removeObserver(observer)
     }
 
 }
